@@ -29,8 +29,8 @@ static Parameter defconfig[ParameterLast] = {
 	[FrameFlattening]     =       { { .i = 0 },     },
 	[Geolocation]         =       { { .i = 0 },     },
 	[HideBackground]      =       { { .i = 0 },     },
-	[Inspector]           =       { { .i = 0 },     },
-	[Java]                =       { { .i = 1 },     },
+	[Inspector]           =       { { .i = 1 },     },
+	[Java]                =       { { .i = 0 },     },
 	[JavaScript]          =       { { .i = 1 },     },
 	[KioskMode]           =       { { .i = 0 },     },
 	[LoadImages]          =       { { .i = 1 },     },
@@ -109,7 +109,8 @@ static WebKitFindOptions findopts = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE |
  */
 static SiteSpecific styles[] = {
 	/* regexp               file in $styledir */
-	{ ".*",                 "default.css" },
+	{ "https://app.slack.com/client/.*", "slack.css" },
+	{ ".*",                 "default.css" }
 };
 
 /* certificates */
@@ -119,6 +120,38 @@ static SiteSpecific styles[] = {
 static SiteSpecific certs[] = {
 	/* regexp               file in $certdir */
 	{ "://suckless\\.org/", "suckless.org.crt" },
+};
+
+static SearchEngine searchengines[] = {
+	{ "ddg",   "http://duckduckgo.co.uk/search?q=%s"   },
+	// Google
+	{ "goog", "https://google.com/search?q=%s" },
+	// Arch User Repository
+	{ "aur", "https://aur.archlinux.org/packages/?O=0&K=%s" },
+	// Arch Wiki
+	{ "aw", "https://wiki.archlinux.org/?search=%s" },
+	// Wordpress
+	{ "wps", "https://developer.wordpress.org/?s=%s" },
+	// Wordpress - Only functions
+	{ "wpf", "https://developer.wordpress.org/?s=%s&post_type%5B%5D=wp-parser-function" },
+	// Wordpress - Only hooks
+	{ "wph", "https://developer.wordpress.org/?s=%s&post_type%5B%5D=wp-parser-hook" },
+	// Wordpress - Only classes
+	{ "wpc", "https://developer.wordpress.org/?s=%s&post_type%5B%5D=wp-parser-class" },
+	// Wordpress - Only methods
+	{ "wpm", "https://developer.wordpress.org/?s=%s&post_type%5B%5D=wp-parser-method" },
+	// PHP.net
+	{ "phps", "https://secure.php.net/manual-lookup.php?pattern=%s&scope=quickref" },
+	// Can I Use
+	{ "ciu", "https://caniuse.com/#search=%s" },
+	// Mozzila Developer Network web docs
+	{ "mdn", "https://developer.mozilla.org/en-US/search?q=%s" },
+	// GitHub
+	{ "gh", "https://github.com/search?q=%s" },
+	// Youtube
+	{ "yt", "https://www.youtube.com/results?search_query=%s" },
+	// Wikipedia
+	{ "wiki", "https://en.wikipedia.org/wiki/%s" },
 };
 
 #define MODKEY GDK_CONTROL_MASK
