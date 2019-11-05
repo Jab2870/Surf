@@ -30,31 +30,37 @@ static Parameter defconfig[ParameterLast] = {
 	[FrameFlattening]     =       { { .i = 0 },     },
 	[Geolocation]         =       { { .i = 0 },     },
 	[HideBackground]      =       { { .i = 0 },     },
-	[Inspector]           =       { { .i = 1 },     },
+	[Inspector]           =       { { .i = 0 },     },
 	[Java]                =       { { .i = 0 },     },
-	[JavaScript]          =       { { .i = 1 },     },
+	[JavaScript]          =       { { .i = 0 },     },
 	[KioskMode]           =       { { .i = 0 },     },
 	[LoadImages]          =       { { .i = 1 },     },
 	[MediaManualPlay]     =       { { .i = 1 },     },
 	[Plugins]             =       { { .i = 1 },     },
 	[PreferredLanguages]  =       { { .v = (char *[]){ NULL } }, },
 	[RunInFullscreen]     =       { { .i = 0 },     },
-	[ScrollBars]          =       { { .i = 1 },     },
+	[ScrollBars]          =       { { .i = 0 },     },
 	[ShowIndicators]      =       { { .i = 1 },     },
 	[SiteQuirks]          =       { { .i = 1 },     },
 	[SmoothScrolling]     =       { { .i = 0 },     },
-	[SpellChecking]       =       { { .i = 0 },     },
-	[SpellLanguages]      =       { { .v = ((char *[]){ "en_US", NULL }) }, },
+	[SpellChecking]       =       { { .i = 1 },     },
+	[SpellLanguages]      =       { { .v = ((char *[]){ "en_GB", NULL }) }, },
 	[StrictTLS]           =       { { .i = 1 },     },
 	[Style]               =       { { .i = 1 },     },
 	[WebGL]               =       { { .i = 0 },     },
-	[ZoomLevel]           =       { { .f = 1.0 },   },
+	[ZoomLevel]           =       { { .f = 1.2 },   },
 };
 
 static UriParameters uriparams[] = {
 	{ "(://|\\.)suckless\\.org(/|$)", {
 	  [JavaScript] = { { .i = 0 }, 1 },
 	  [Plugins]    = { { .i = 0 }, 1 },
+	}, },
+	{ "(://|\\.)slack\\.com(/|$)", {
+	  [JavaScript] = { { .i = 1 }, 1 },
+	}, },
+	{ "(://|\\.)duckduckgo\\.(com|co.uk)(/|$)", {
+	  [JavaScript] = { { .i = 1 }, 1 },
 	}, },
 };
 
@@ -80,8 +86,7 @@ static WebKitFindOptions findopts = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE |
 /* DOWNLOAD(URI, referer) */
 #define DOWNLOAD(u, r) { \
         .v = (const char *[]){ "st", "-e", "/bin/sh", "-c",\
-             "curl -g -L -J -O -A \"$1\" -b \"$2\" -c \"$2\"" \
-             " -e \"$3\" \"$4\"; read", \
+             "download surf-download \"$1\" \"$2\" \"$3\" \"$4\"; read", \
              "surf-download", useragent, cookiefile, r, u, NULL \
         } \
 }
@@ -99,12 +104,17 @@ static WebKitFindOptions findopts = WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE |
 /* VIDEOPLAY(URI) */
 #define VIDEOPLAY(u) {\
         .v = (const char *[]){ "/bin/sh", "-c", \
-             "mpv --really-quiet \"$0\"", u, NULL \
+             "open-youtube \"$0\"", u, NULL \
         } \
 }
 
-#define SETURI(p)       { .v = (char *[]){ "/bin/sh", "-c", \
-"prop=\"`surf_history_dmenu.sh`\" &&" \
+#define SETURI_HISTORY(p)       { .v = (char *[]){ "/bin/sh", "-c", \
+"prop=\"$(tac ~/.surf/history.txt | dmenu -l 10 -i | cut -d ' ' -f 3)\" &&" \
+"xprop -id $1 -f $0 8s -set $0 \"$prop\"", \
+p, winid, NULL } }
+
+#define SETURI_BOOKMARKS(p)       { .v = (char *[]){ "/bin/sh", "-c", \
+"prop=\"$(get-bookmark)\" &&" \
 "xprop -id $1 -f $0 8s -set $0 \"$prop\"", \
 p, winid, NULL } }
 
@@ -115,7 +125,12 @@ p, winid, NULL } }
  */
 static SiteSpecific styles[] = {
 	/* regexp               file in $styledir */
+	{ "https://wiki.archlinux.org/.*", "archwiki.css" },
 	{ "https://app.slack.com/client/.*", "slack.css" },
+	{ "https://duckduckgo.(com|co.uk)/.*", "duckduckgo.css" },
+	{ "https://(.*\.)?duckduckgo.(com|co.uk)/.*", "duckduckgo.css" },
+	{ "https://(.*\.)?reddit.com/.*", "reddit.css" },
+	{ "file://.*", "none.css" },
 	{ ".*",                 "default.css" }
 };
 
@@ -129,7 +144,7 @@ static SiteSpecific certs[] = {
 };
 
 static SearchEngine searchengines[] = {
-	{ "ddg",   "http://duckduckgo.co.uk/search?q=%s"   },
+	{ "ddg",   "http://duckduckgo.co.uk/?q=%s"   },
 	// Google
 	{ "goog", "https://google.com/search?q=%s" },
 	// Arch User Repository
@@ -170,6 +185,8 @@ static SearchEngine searchengines[] = {
 static Key keys[] = {
 	/* modifier              keyval          function    arg */
 	{ 0,                     GDK_KEY_o,      spawn,      SETPROP("_SURF_URI", "_SURF_GO", PROMPT_GO) },
+    { MODKEY               , GDK_KEY_o,      spawn,      SETURI_HISTORY("_SURF_GO") },
+    { MODKEY               , GDK_KEY_b,      spawn,      SETURI_BOOKMARKS("_SURF_GO") },
 	{ 0,                     GDK_KEY_slash,  spawn,      SETPROP("_SURF_FIND", "_SURF_FIND", PROMPT_FIND) },
 
 	{ 0,                     GDK_KEY_i,      insert,     { .i = 1 } },
@@ -199,6 +216,8 @@ static Key keys[] = {
 
 	{ 0,                     GDK_KEY_p,      clipboard,  { .i = 1 } },
 	{ 0,                     GDK_KEY_y,      clipboard,  { .i = 0 } },
+	/* Youtube */
+	{ 0|GDK_SHIFT_MASK,      GDK_KEY_y,      play_external,  { 0 } },
 
 	/* next / previous search match */
 	{ 0,                     GDK_KEY_n,      find,       { .i = +1 } },
@@ -220,7 +239,6 @@ static Key keys[] = {
 	{ MODKEY|GDK_SHIFT_MASK, GDK_KEY_b,      toggle,     { .i = ScrollBars } },
 	{ MODKEY|GDK_SHIFT_MASK, GDK_KEY_t,      toggle,     { .i = StrictTLS } },
 	{ MODKEY|GDK_SHIFT_MASK, GDK_KEY_m,      toggle,     { .i = Style } },
-    { MODKEY               , GDK_KEY_Return, spawn,      SETURI("_SURF_GO") },
 };
 
 /* button definitions */
